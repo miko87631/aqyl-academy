@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход — Aqyl Academy</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid;
+      place-items: center; padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f3f5fb; color: #18213a;
+    }
+    .card {
+      width: 100%; max-width: 420px; padding: 28px;
+      background: white; border-radius: 18px;
+      box-shadow: 0 10px 35px #17255414;
+    }
+    h1 { margin-top: 0; }
+    p { color: #667085; line-height: 1.5; }
+    label { display: block; margin: 16px 0 6px; }
+    input, button {
+      width: 100%; padding: 12px; border-radius: 9px;
+      font-size: 16px;
+    }
+    input { border: 1px solid #ccd2df; }
+    button {
+      margin-top: 14px; border: 0; cursor: pointer;
+      background: #4659e8; color: white; font-weight: bold;
+    }
+    button.secondary { background: #e9ecff; color: #3444bd; }
+    #message { overflow-wrap: anywhere; }
+    a { color: #4659e8; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Aqyl Academy</h1>
+    <p>Создай аккаунт ученика или войди в существующий.</p>
+
+    <form id="auth-form">
+      <label for="name">Имя</label>
+      <input id="name" type="text" autocomplete="name"
+             placeholder="Твоё имя">
+
+      <label for="email">Электронная почта</label>
+      <input id="email" type="email" autocomplete="email"
+             placeholder="name@example.com" required>
+
+      <label for="password">Пароль</label>
+      <input id="password" type="password"
+             autocomplete="current-password"
+             minlength="6" required>
+
+      <button type="submit">Войти</button>
+      <button type="button" class="secondary" id="signup">
+        Создать аккаунт
+      </button>
+    </form>
+
+    <p id="message" role="status"></p>
+    <p><a href="index.html">Вернуться на главную</a></p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://ewbbhyqhklcwqlgzbbhv.supabase.co/";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_WyyJi3p0uzbvBKujFhj_Pg_uCWbESxz";
+
+    const client = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    const form = document.getElementById("auth-form");
+    const message = document.getElementById("message");
+    const signupButton = document.getElementById("signup");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      message.textContent = "Выполняется вход...";
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      const { error } = await client.auth.signInWithPassword({
+        email, password
+      });
+
+      message.textContent = error
+        ? "Ошибка входа: " + error.message
+        : "Вход выполнен! Аккаунт подключён.";
+    });
+
+    signupButton.addEventListener("click", async () => {
+      message.textContent = "Создаём аккаунт...";
+
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!email || password.length < 6) {
+        message.textContent =
+          "Введи почту и пароль длиной не менее 6 символов.";
+        return;
+      }
+
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+          emailRedirectTo: window.location.origin + "/aqyl-academy/"
+        }
+      });
+
+      if (error) {
+        message.textContent = "Ошибка регистрации: " + error.message;
+      } else if (data.session) {
+        message.textContent = "Аккаунт создан! Теперь можно войти.";
+      } else {
+        message.textContent =
+          "Аккаунт создан. Проверь почту и подтверди регистрацию, если это требуется.";
+      }
+    });
+  </script>
+</body>
+</html>
