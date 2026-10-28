@@ -497,6 +497,13 @@
 const SUPABASE_URL = "https://ewbbhyqhklcwqlgzbbhv.supabase.co/";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_WyyJi3p0uzbvBKujFhj_Pg_uCWbESxz";
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script>
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+</script>
 </body>
 </html>
