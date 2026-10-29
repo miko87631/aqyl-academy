@@ -99,6 +99,12 @@
         <p id="formMessage" class="message" role="status"></p>
       </form>
     </section>
+   
+<section class="panel">
+  <h2>Мои ученики 👥</h2>
+  <p class="muted">Зарегистрированные ученики Aqyl Academy.</p>
+  <div id="studentList">Загружаем список учеников...</div>
+</section>
 
     <section class="panel">
       <h2>Созданные задания</h2>
@@ -152,7 +158,46 @@
         (profile.full_name || user.email) + "!";
 
       await loadAssignments();
+      await loadStudents();
     }
+
+async function loadStudents() {
+  const studentList = document.getElementById("studentList");
+  studentList.textContent = "Загружаем учеников...";
+
+  const { data: students, error } = await client
+    .from("profiles")
+    .select("id, full_name, email")
+    .eq("role", "student")
+    .order("full_name");
+
+  if (error) {
+    studentList.textContent = "Ошибка загрузки: " + error.message;
+    return;
+  }
+
+  if (!students || students.length === 0) {
+    studentList.textContent = "Пока нет зарегистрированных учеников.";
+    return;
+  }
+
+  studentList.replaceChildren();
+
+  students.forEach((student) => {
+    const card = document.createElement("div");
+    card.className = "assignment";
+
+    const name = document.createElement("h3");
+    name.textContent = student.full_name || "Имя не указано";
+
+    const email = document.createElement("p");
+    email.className = "muted";
+    email.textContent = student.email || "Почта не указана";
+
+    card.append(name, email);
+    studentList.appendChild(card);
+  });
+}
 
     async function loadAssignments() {
       assignmentList.textContent = "Загружаем задания...";
