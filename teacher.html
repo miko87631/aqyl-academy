@@ -91,6 +91,12 @@
 
         <label for="description">Описание и инструкции</label>
         <textarea id="description" required placeholder="Напиши, что должны сделать ученики"></textarea>
+  
+<label for="studentSelect">Назначить ученикам</label>
+<select id="studentSelect" multiple required
+  style="width:100%; padding:12px; border:1px solid #d7ddeb; border-radius:9px; min-height:130px;">
+</select>
+<p class="muted">Чтобы выбрать несколько учеников, удерживай Ctrl (на Mac — Command) и нажимай на имена.</p>
 
         <label for="dueAt">Дедлайн (необязательно)</label>
         <input id="dueAt" type="datetime-local">
