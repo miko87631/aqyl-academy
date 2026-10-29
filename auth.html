@@ -89,9 +89,12 @@
         email, password
       });
 
-      message.textContent = error
-        ? "Ошибка входа: " + error.message
-        : "Вход выполнен! Аккаунт подключён.";
+     if (error) {
+  message.textContent = "Ошибка входа: " + error.message;
+} else {
+  message.textContent = "Вход выполнен! Открываем кабинет...";
+  window.location.href = "dashboard.html";
+}
     });
 
     signupButton.addEventListener("click", async () => {
