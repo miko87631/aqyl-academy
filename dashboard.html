@@ -215,6 +215,44 @@ const answerMessage = document.createElement("p");
 answerMessage.className = "muted";
 
 item.append(answerLabel, answerInput, submitButton, answerMessage);
+  const reviewMessage = document.createElement("p");
+reviewMessage.className = "muted";
+reviewMessage.textContent = "Загружаем результат проверки...";
+item.appendChild(reviewMessage);
+
+const { data: userResult } = await client.auth.getUser();
+const currentStudent = userResult.user;
+
+if (currentStudent) {
+  const { data: mySubmission, error: reviewError } = await client
+    .from("submissions")
+    .select("answer, grade, teacher_feedback")
+    .eq("assignment_id", assignment.id)
+    .eq("student_id", currentStudent.id)
+    .maybeSingle();
+
+  if (reviewError) {
+    reviewMessage.textContent = "Не удалось загрузить результат проверки.";
+  } else if (!mySubmission) {
+    reviewMessage.textContent = "Статус: задание ещё не отправлено.";
+  } else {
+    answerInput.value = mySubmission.answer || "";
+    answerInput.disabled = true;
+    submitButton.disabled = true;
+    submitButton.textContent = "Ответ отправлен";
+
+    if (mySubmission.grade === null) {
+      reviewMessage.textContent = "Статус: ожидает проверки учителем.";
+    } else {
+      reviewMessage.textContent =
+        "Статус: проверено. Оценка: " + mySubmission.grade + "/100" +
+        (mySubmission.teacher_feedback
+          ? "\nКомментарий учителя: " + mySubmission.teacher_feedback
+          : "");
+      reviewMessage.style.whiteSpace = "pre-wrap";
+    }
+  }
+}
 submitButton.addEventListener("click", async () => {
   const answer = answerInput.value.trim();
 
