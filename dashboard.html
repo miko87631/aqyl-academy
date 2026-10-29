@@ -215,7 +215,48 @@ const answerMessage = document.createElement("p");
 answerMessage.className = "muted";
 
 item.append(answerLabel, answerInput, submitButton, answerMessage);
+submitButton.addEventListener("click", async () => {
+  const answer = answerInput.value.trim();
 
+  if (!answer) {
+    answerMessage.textContent = "Сначала напиши ответ.";
+    return;
+  }
+
+  submitButton.disabled = true;
+  answerMessage.textContent = "Отправка...";
+
+  const { data: userData } = await client.auth.getUser();
+  const user = userData.user;
+
+  if (!user) {
+    answerMessage.textContent = "Войди в аккаунт заново.";
+    submitButton.disabled = false;
+    return;
+  }
+
+  const { error } = await client
+    .from("submissions")
+    .insert({
+      assignment_id: assignment.id,
+      student_id: user.id,
+      answer: answer
+    });
+
+  if (error) {
+    answerMessage.textContent =
+      error.code === "23505"
+        ? "Ты уже отправил ответ на это задание."
+        : "Ошибка отправки: " + error.message;
+
+    submitButton.disabled = false;
+    return;
+  }
+
+  answerMessage.textContent = "Ответ успешно отправлен учителю!";
+  answerInput.disabled = true;
+  submitButton.disabled = true;
+});
         if (assignment.due_at) {
           const due = document.createElement("p");
           due.className = "muted";
