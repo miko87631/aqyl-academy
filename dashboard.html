@@ -1,0 +1,224 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мой кабинет — Aqyl Academy</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6fc;
+      color: #18213a;
+    }
+    header {
+      background: white;
+      border-bottom: 1px solid #e3e7f0;
+      padding: 16px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .logo {
+      font-size: 21px;
+      font-weight: bold;
+      color: #18213a;
+      text-decoration: none;
+    }
+    .logo span { color: #4659e8; }
+    button, .btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 15px;
+      background: #4659e8;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .secondary {
+      background: #edf0ff;
+      color: #3444bd;
+    }
+    main {
+      max-width: 1050px;
+      margin: 32px auto;
+      padding: 0 18px 40px;
+    }
+    .welcome {
+      background: linear-gradient(120deg, #4659e8, #7885f5);
+      color: white;
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 22px;
+    }
+    .welcome h1 { margin: 0 0 10px; }
+    .welcome p { margin-bottom: 0; line-height: 1.6; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: white;
+      border: 1px solid #e5e8f1;
+      border-radius: 16px;
+      padding: 22px;
+    }
+    .card h2 { font-size: 18px; margin-top: 0; }
+    .muted { color: #667085; line-height: 1.6; }
+    #message {
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+    }
+    #assignments { margin-top: 20px; }
+    .assignment {
+      border: 1px solid #e5e8f1;
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 12px;
+    }
+    .assignment h3 { margin: 0 0 8px; }
+    @media (max-width: 500px) {
+      header { padding: 14px; }
+      main { margin-top: 20px; }
+      .welcome { padding: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="logo" href="index.html">Aqyl<span>Academy.</span></a>
+    <button class="secondary" id="logout">Выйти</button>
+  </header>
+
+  <main>
+    <section class="welcome">
+      <h1 id="welcome-title">Мой кабинет</h1>
+      <p>Твоё место для учёбы, заданий и новых достижений.</p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>👤 Мой профиль</h2>
+        <p class="muted" id="profile-info">Загружаем профиль...</p>
+      </div>
+      <div class="card">
+        <h2>📚 Мои курсы</h2>
+        <p class="muted">Английский язык, IELTS и подготовка к ҰБТ.</p>
+        <a class="btn" href="index.html#courses">Открыть курсы</a>
+      </div>
+      <div class="card">
+        <h2>📈 Мой прогресс</h2>
+        <p class="muted">Здесь появится статистика пройденных уроков и тестов.</p>
+      </div>
+    </section>
+
+    <section class="card" id="assignments">
+      <h2>📝 Домашние задания</h2>
+      <p class="muted" id="assignment-message">Загружаем задания...</p>
+      <div id="assignment-list"></div>
+    </section>
+
+    <p id="message" role="status"></p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://ewbbhyqhklcwqlgzbbhv.supabase.co/";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_WyyJi3p0uzbvBKujFhj_Pg_uCWbESxz";
+
+    const client = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    async function initDashboard() {
+      const { data, error } = await client.auth.getUser();
+
+      if (error || !data.user) {
+        window.location.href = "auth.html";
+        return;
+      }
+
+      const user = data.user;
+      const name = user.user_metadata?.full_name || "Ученик";
+
+      document.getElementById("welcome-title").textContent =
+        "Привет, " + name + "!";
+
+      document.getElementById("profile-info").textContent =
+        "Имя: " + name + "\nПочта: " + user.email;
+
+      const { data: assignments, error: assignmentError } =
+        await client
+          .from("assignments")
+          .select("id, title, description, due_at")
+          .order("created_at", { ascending: false });
+
+      const assignmentMessage =
+        document.getElementById("assignment-message");
+      const assignmentList =
+        document.getElementById("assignment-list");
+
+      if (assignmentError) {
+        assignmentMessage.textContent =
+          "Не удалось загрузить задания. Попробуй обновить страницу.";
+        return;
+      }
+
+      if (!assignments || assignments.length === 0) {
+        assignmentMessage.textContent =
+          "Пока заданий нет. Когда учитель назначит тебе работу, она появится здесь.";
+        return;
+      }
+
+      assignmentMessage.textContent = "";
+
+      assignments.forEach((assignment) => {
+        const item = document.createElement("div");
+        item.className = "assignment";
+
+        const title = document.createElement("h3");
+        title.textContent = assignment.title;
+
+        const description = document.createElement("p");
+        description.className = "muted";
+        description.textContent = assignment.description || "";
+
+        item.append(title, description);
+
+        if (assignment.due_at) {
+          const due = document.createElement("p");
+          due.className = "muted";
+          due.textContent = "Срок: " +
+            new Date(assignment.due_at).toLocaleString("ru-RU");
+          item.append(due);
+        }
+
+        assignmentList.append(item);
+      });
+    }
+
+    document.getElementById("logout").addEventListener("click", async () => {
+      const { error } = await client.auth.signOut();
+
+      if (error) {
+        document.getElementById("message").textContent =
+          "Не удалось выйти: " + error.message;
+        return;
+      }
+
+      window.location.href = "auth.html";
+    });
+
+    initDashboard();
+  </script>
+</body>
+</html>
