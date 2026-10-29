@@ -194,6 +194,28 @@
 
         item.append(title, description);
 
+const answerLabel = document.createElement("label");
+answerLabel.textContent = "Твой ответ:";
+
+const answerInput = document.createElement("textarea");
+answerInput.placeholder = "Напиши ответ на задание...";
+answerInput.rows = 5;
+answerInput.style.width = "100%";
+answerInput.style.boxSizing = "border-box";
+answerInput.style.padding = "12px";
+answerInput.style.marginTop = "8px";
+answerInput.style.borderRadius = "9px";
+answerInput.style.border = "1px solid #d7ddeb";
+
+const submitButton = document.createElement("button");
+submitButton.textContent = "Отправить ответ";
+submitButton.type = "button";
+
+const answerMessage = document.createElement("p");
+answerMessage.className = "muted";
+
+item.append(answerLabel, answerInput, submitButton, answerMessage);
+
         if (assignment.due_at) {
           const due = document.createElement("p");
           due.className = "muted";
