@@ -89,14 +89,33 @@
         email, password
       });
 
-     if (error) {
+    
+if (error) {
   message.textContent = "Ошибка входа: " + error.message;
 } else {
-  message.textContent = "Вход выполнен! Открываем кабинет...";
-  window.location.replace(
-  "https://miko87631.github.io/aqyl-academy/dashboard.html"
-);
+  message.textContent = "Вход выполнен! Проверяем роль...";
+
+  const { data: { user } } = await client.auth.getUser();
+
+  const { data: profile, error: profileError } = await client
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !profile) {
+    message.textContent = "Не удалось определить роль аккаунта.";
+  } else if (profile.role === "teacher") {
+    window.location.replace(
+      "https://miko87631.github.io/aqyl-academy/teacher.html"
+    );
+  } else {
+    window.location.replace(
+      "https://miko87631.github.io/aqyl-academy/dashboard.html"
+    );
+  }
 }
+
     });
 
     signupButton.addEventListener("click", async () => {
