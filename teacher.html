@@ -235,7 +235,7 @@ async function loadStudents() {
 
       assignmentList.replaceChildren();
 
-      data.forEach((item) => {
+     data.forEach(async (item) => {
         const card = document.createElement("div");
         card.className = "assignment";
 
@@ -252,7 +252,88 @@ async function loadStudents() {
           : "Без дедлайна";
 
         card.append(heading, description, deadline);
-        assignmentList.appendChild(card);
+
+const answersTitle = document.createElement("h4");
+answersTitle.textContent = "Ответы учеников";
+card.appendChild(answersTitle);
+
+const answersList = document.createElement("div");
+answersList.textContent = "Загружаем ответы...";
+card.appendChild(answersList);
+
+assignmentList.appendChild(card);
+
+const { data: submissions, error: submissionsError } = await client
+  .from("submissions")
+  .select("id, student_id, answer, grade, teacher_feedback, submitted_at")
+  .eq("assignment_id", item.id)
+  .order("submitted_at", { ascending: false });
+
+if (submissionsError) {
+  answersList.textContent =
+    "Не удалось загрузить ответы: " + submissionsError.message;
+  return;
+}
+
+if (!submissions || submissions.length === 0) {
+  answersList.textContent = "Пока никто не отправил ответ.";
+  return;
+}
+
+answersList.replaceChildren();
+
+const studentIds = [...new Set(submissions.map(s => s.student_id))];
+
+const { data: students, error: studentsError } = await client
+  .from("profiles")
+  .select("id, full_name, email")
+  .in("id", studentIds);
+
+if (studentsError) {
+  answersList.textContent =
+    "Не удалось загрузить имена учеников: " + studentsError.message;
+  return;
+}
+
+submissions.forEach((submission) => {
+  const student = students.find(
+    s => s.id === submission.student_id
+  );
+
+  const answerCard = document.createElement("div");
+  answerCard.style.padding = "12px";
+  answerCard.style.marginTop = "10px";
+  answerCard.style.border = "1px solid #d7ddeb";
+  answerCard.style.borderRadius = "9px";
+
+  const name = document.createElement("h4");
+  name.textContent =
+    student?.full_name || student?.email || "Ученик";
+
+  const answerText = document.createElement("p");
+  answerText.style.whiteSpace = "pre-wrap";
+  answerText.textContent = submission.answer || "Пустой ответ";
+
+  const sentAt = document.createElement("p");
+  sentAt.className = "muted";
+  sentAt.textContent =
+    "Отправлено: " +
+    new Date(submission.submitted_at).toLocaleString("ru-RU");
+
+  const gradeText = document.createElement("p");
+  gradeText.textContent =
+    submission.grade === null
+      ? "Оценка: ещё не выставлена"
+      : "Оценка: " + submission.grade + "/100";
+
+  const feedback = document.createElement("p");
+  feedback.textContent = submission.teacher_feedback
+    ? "Комментарий: " + submission.teacher_feedback
+    : "Комментария пока нет.";
+
+  answerCard.append(name, answerText, sentAt, gradeText, feedback);
+  answersList.appendChild(answerCard);
+});
       });
     }
 
