@@ -327,12 +327,96 @@ submissions.forEach((submission) => {
       : "Оценка: " + submission.grade + "/100";
 
   const feedback = document.createElement("p");
-  feedback.textContent = submission.teacher_feedback
-    ? "Комментарий: " + submission.teacher_feedback
+feedback.textContent = submission.teacher_feedback
+  ? "Комментарий: " + submission.teacher_feedback
+  : "Комментария пока нет.";
+
+const gradeInput = document.createElement("input");
+gradeInput.type = "number";
+gradeInput.min = "0";
+gradeInput.max = "100";
+gradeInput.step = "1";
+gradeInput.placeholder = "Оценка от 0 до 100";
+gradeInput.value = submission.grade ?? "";
+gradeInput.style.width = "100%";
+gradeInput.style.boxSizing = "border-box";
+gradeInput.style.padding = "10px";
+gradeInput.style.marginTop = "10px";
+
+const feedbackInput = document.createElement("textarea");
+feedbackInput.placeholder = "Комментарий ученику...";
+feedbackInput.rows = 3;
+feedbackInput.value = submission.teacher_feedback || "";
+feedbackInput.style.width = "100%";
+feedbackInput.style.boxSizing = "border-box";
+feedbackInput.style.padding = "10px";
+feedbackInput.style.marginTop = "8px";
+
+const saveButton = document.createElement("button");
+saveButton.type = "button";
+saveButton.textContent = "Сохранить оценку";
+
+const saveMessage = document.createElement("p");
+saveMessage.className = "muted";
+
+answerCard.append(
+  name,
+  answerText,
+  sentAt,
+  gradeText,
+  feedback,
+  gradeInput,
+  feedbackInput,
+  saveButton,
+  saveMessage
+);
+
+answersList.appendChild(answerCard);
+
+saveButton.addEventListener("click", async () => {
+  const gradeValue = gradeInput.value.trim();
+
+  if (
+    gradeValue !== "" &&
+    (
+      !Number.isFinite(Number(gradeValue)) ||
+      Number(gradeValue) < 0 ||
+      Number(gradeValue) > 100
+    )
+  ) {
+    saveMessage.textContent = "Оценка должна быть от 0 до 100.";
+    return;
+  }
+
+  saveButton.disabled = true;
+  saveMessage.textContent = "Сохраняем...";
+
+  const { error: saveError } = await client
+    .from("submissions")
+    .update({
+      grade: gradeValue === "" ? null : Number(gradeValue),
+      teacher_feedback: feedbackInput.value.trim()
+    })
+    .eq("id", submission.id);
+
+  saveButton.disabled = false;
+
+  if (saveError) {
+    saveMessage.textContent =
+      "Ошибка сохранения: " + saveError.message;
+    return;
+  }
+
+  gradeText.textContent = gradeValue === ""
+    ? "Оценка: ещё не выставлена"
+    : "Оценка: " + gradeValue + "/100";
+
+  feedback.textContent = feedbackInput.value.trim()
+    ? "Комментарий: " + feedbackInput.value.trim()
     : "Комментария пока нет.";
 
-    answerCard.append(name, answerText, sentAt, gradeText, feedback);
-  answersList.appendChild(answerCard);
+  saveMessage.textContent = "Оценка и комментарий сохранены!";
+});
   });
   });
 }
