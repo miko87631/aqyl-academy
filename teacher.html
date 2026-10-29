@@ -331,11 +331,11 @@ submissions.forEach((submission) => {
     ? "Комментарий: " + submission.teacher_feedback
     : "Комментария пока нет.";
 
-  answerCard.append(name, answerText, sentAt, gradeText, feedback);
+    answerCard.append(name, answerText, sentAt, gradeText, feedback);
   answersList.appendChild(answerCard);
   });
-      });
-    }
+  });
+}
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
