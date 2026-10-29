@@ -203,6 +203,18 @@ async function loadStudents() {
     card.append(name, email);
     studentList.appendChild(card);
   });
+
+  const studentSelect = document.getElementById("studentSelect");
+  studentSelect.replaceChildren();
+
+  students.forEach((student) => {
+    const option = document.createElement("option");
+    option.value = student.id;
+    option.textContent = student.full_name || student.email || "Ученик";
+    studentSelect.appendChild(option);
+  });
+}
+
 }
 
     async function loadAssignments() {
