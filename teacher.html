@@ -277,9 +277,47 @@ async function loadStudents() {
         created_by: currentUser.id
       };
 
-      const { error } = await client
-        .from("assignments")
-        .insert(assignment);
+     
+const studentSelect = document.getElementById("studentSelect");
+const selectedStudentIds = Array.from(studentSelect.selectedOptions)
+  .map(option => option.value);
+
+if (selectedStudentIds.length === 0) {
+  formMessage.textContent = "Выбери хотя бы одного ученика.";
+  createButton.disabled = false;
+  return;
+}
+
+const { data: createdAssignment, error } = await client
+  .from("assignments")
+  .insert(assignment)
+  .select("id")
+  .single();
+
+if (error) {
+  createButton.disabled = false;
+  formMessage.textContent = "Ошибка: " + error.message;
+  return;
+}
+
+const links = selectedStudentIds.map(studentId => ({
+  assignment_id: createdAssignment.id,
+  student_id: studentId
+}));
+
+const { error: linkError } = await client
+  .from("assignment_students")
+  .insert(links);
+
+createButton.disabled = false;
+
+if (linkError) {
+  formMessage.textContent =
+    "Задание создано, но назначить его ученикам не удалось: " +
+    linkError.message;
+  await loadAssignments();
+  return;
+}
 
       createButton.disabled = false;
 
