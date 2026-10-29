@@ -1,0 +1,241 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кабинет учителя | Aqyl Academy</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+    header {
+      background: #fff;
+      padding: 18px 6%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 12px #1522380d;
+    }
+    .logo { font-size: 22px; font-weight: 800; }
+    .logo span { color: #4f46e5; }
+    main { max-width: 1000px; margin: 35px auto; padding: 0 18px; }
+    .panel {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 22px;
+      box-shadow: 0 5px 22px #1522380a;
+    }
+    h1 { margin-top: 0; }
+    h2 { margin-top: 0; font-size: 21px; }
+    label { display: block; margin: 15px 0 7px; font-weight: 600; }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d7ddeb;
+      border-radius: 9px;
+      font: inherit;
+    }
+    textarea { min-height: 100px; resize: vertical; }
+    button, .back {
+      border: 0;
+      border-radius: 9px;
+      padding: 12px 17px;
+      background: #4f46e5;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    .secondary { background: #e9edff; color: #3730a3; }
+    .muted { color: #64748b; }
+    .message { margin-top: 12px; overflow-wrap: anywhere; }
+    .assignment {
+      padding: 15px 0;
+      border-bottom: 1px solid #e7ebf3;
+    }
+    .assignment:last-child { border-bottom: 0; }
+    @media (max-width: 600px) {
+      header { padding: 16px; }
+      main { margin-top: 20px; }
+      .panel { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Aqyl<span>Academy.</span></div>
+    <button id="logout" class="secondary">Выйти</button>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h1>Кабинет учителя 🎓</h1>
+      <p class="muted" id="welcome">Проверяем аккаунт...</p>
+      <p class="muted">Здесь ты сможешь создавать задания и управлять обучением учеников.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Создать задание</h2>
+      <form id="assignmentForm">
+        <label for="title">Название задания</label>
+        <input id="title" maxlength="150" required placeholder="Например: Present Simple">
+
+        <label for="description">Описание и инструкции</label>
+        <textarea id="description" required placeholder="Напиши, что должны сделать ученики"></textarea>
+
+        <label for="dueAt">Дедлайн (необязательно)</label>
+        <input id="dueAt" type="datetime-local">
+
+        <button id="createButton" type="submit" style="margin-top:18px">Создать задание</button>
+        <p id="formMessage" class="message" role="status"></p>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Созданные задания</h2>
+      <p class="muted">Пока здесь отображаются задания, сохранённые в базе данных.</p>
+      <div id="assignmentList">Загружаем задания...</div>
+    </section>
+
+    <a class="back" href="dashboard.html">← Вернуться в кабинет</a>
+  </main>
+
+  <script>
+    const SUPABASE_URL = "https://ewbbhyqhklcwqlgzbbhv.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_WyyJi3p0uzbvBKujFhj_Pg_uCWbESxz";
+    const client = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    const welcome = document.getElementById("welcome");
+    const form = document.getElementById("assignmentForm");
+    const formMessage = document.getElementById("formMessage");
+    const createButton = document.getElementById("createButton");
+    const assignmentList = document.getElementById("assignmentList");
+
+    let currentUser = null;
+
+    async function startPage() {
+      const { data: { user }, error } = await client.auth.getUser();
+
+      if (error || !user) {
+        window.location.replace("auth.html");
+        return;
+      }
+
+      currentUser = user;
+
+      const { data: profile, error: profileError } = await client
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile || profile.role !== "teacher") {
+        welcome.textContent = "Доступ только для учителя. Проверь роль аккаунта.";
+        form.hidden = true;
+        assignmentList.textContent = "Нет доступа.";
+        return;
+      }
+
+      welcome.textContent = "Добро пожаловать, " +
+        (profile.full_name || user.email) + "!";
+
+      await loadAssignments();
+    }
+
+    async function loadAssignments() {
+      assignmentList.textContent = "Загружаем задания...";
+
+      const { data, error } = await client
+        .from("assignments")
+        .select("id, title, description, due_at, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        assignmentList.textContent = "Не удалось загрузить задания: " + error.message;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        assignmentList.textContent = "Пока заданий нет. Создай первое выше!";
+        return;
+      }
+
+      assignmentList.replaceChildren();
+
+      data.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "assignment";
+
+        const heading = document.createElement("h3");
+        heading.textContent = item.title;
+
+        const description = document.createElement("p");
+        description.textContent = item.description || "Без описания";
+
+        const deadline = document.createElement("p");
+        deadline.className = "muted";
+        deadline.textContent = item.due_at
+          ? "Дедлайн: " + new Date(item.due_at).toLocaleString("ru-RU")
+          : "Без дедлайна";
+
+        card.append(heading, description, deadline);
+        assignmentList.appendChild(card);
+      });
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!currentUser) return;
+
+      createButton.disabled = true;
+      formMessage.textContent = "Сохраняем задание...";
+
+      const title = document.getElementById("title").value.trim();
+      const description = document.getElementById("description").value.trim();
+      const deadlineValue = document.getElementById("dueAt").value;
+
+      const assignment = {
+        title,
+        description,
+        due_at: deadlineValue ? new Date(deadlineValue).toISOString() : null,
+        created_by: currentUser.id
+      };
+
+      const { error } = await client
+        .from("assignments")
+        .insert(assignment);
+
+      createButton.disabled = false;
+
+      if (error) {
+        formMessage.textContent = "Ошибка: " + error.message;
+        return;
+      }
+
+      form.reset();
+      formMessage.textContent = "Задание создано! Оно сохранено в базе данных.";
+      await loadAssignments();
+    });
+
+    document.getElementById("logout").addEventListener("click", async () => {
+      await client.auth.signOut();
+      window.location.replace("auth.html");
+    });
+
+    startPage();
+  </script>
+</body>
+</html>
